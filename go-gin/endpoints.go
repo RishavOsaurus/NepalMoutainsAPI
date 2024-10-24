@@ -3,48 +3,63 @@ package gogin
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"mountainsapi/scrapper"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-func GinAPI() {
+var Peaks []scrapper.Mountains
+
+func loadPeaksFromFile() {
 	fileBytes, err := os.ReadFile("peaks.json")
 	if err != nil {
 		panic(err)
 	}
 
-	var Peaks []scrapper.Mountains
-
 	err = json.Unmarshal(fileBytes, &Peaks)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func scrapeAndUpdatePeaks() {
+	scrapper.ScrapePeaks(&Peaks)
+	scrapper.WriteToJson(Peaks)
+	loadPeaksFromFile()
+	fmt.Println("Data updated")
+}
+
+func GinAPI() {
+
+	scrapeAndUpdatePeaks()
 
 	r := gin.Default()
+
 	r.GET("/api/v1", func(c *gin.Context) {
+		fileBytes, err := os.ReadFile("peaks.json")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to read JSON file"})
+			return
+		}
 
 		var prettyJSON bytes.Buffer
 		if err := json.Indent(&prettyJSON, fileBytes, "", "  "); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to format JSON"})
-
+			return
 		}
 
 		c.Data(http.StatusOK, "application/json", fileBytes)
-
 	})
 
 	r.GET("/api/v1/peak/:name", func(c *gin.Context) {
-		var query = c.Param("name")
-		if query == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Name query parameter is required"})
-		}
+		query := c.Param("name")
 
 		var foundPeaks []scrapper.Mountains
-
 		for _, peak := range Peaks {
 			if query == peak.Name {
 				foundPeaks = append(foundPeaks, peak)
@@ -53,15 +68,15 @@ func GinAPI() {
 
 		if len(foundPeaks) == 0 {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Peak not found"})
-		} else {
-
-			prettyFoundPeaks, err := json.MarshalIndent(foundPeaks, "", "  ")
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to format JSON"})
-				return
-			}
-			c.Data(http.StatusOK, "application/json", prettyFoundPeaks)
+			return
 		}
+
+		prettyFoundPeaks, err := json.MarshalIndent(foundPeaks, "", "  ")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to format JSON"})
+			return
+		}
+		c.Data(http.StatusOK, "application/json", prettyFoundPeaks)
 	})
 
 	r.GET("/api/v1/search", func(c *gin.Context) {
@@ -89,6 +104,7 @@ func GinAPI() {
 
 		if !peakFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Peak not found"})
+			return
 		}
 
 		prettyFoundPeak, err := json.MarshalIndent(foundPeak, "", "  ")
@@ -97,8 +113,12 @@ func GinAPI() {
 			return
 		}
 		c.Data(http.StatusOK, "application/json", prettyFoundPeak)
-
 	})
 
-	r.Run("localhost:8080")
+	go r.Run("localhost:8080")
+
+	for {
+		time.Sleep(20 * time.Second)
+		scrapeAndUpdatePeaks()
+	}
 }

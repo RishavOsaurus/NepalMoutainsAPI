@@ -18,6 +18,7 @@ type Mountains struct {
 }
 
 func ScrapePeaks(Peaks *[]Mountains) {
+	fmt.Println("Yo matrai")
 	*Peaks = []Mountains{}
 	browser := rod.New().NoDefaultDevice().MustConnect()
 	defer browser.MustClose()
