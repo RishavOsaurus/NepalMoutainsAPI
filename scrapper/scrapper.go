@@ -18,7 +18,7 @@ type Mountains struct {
 }
 
 func ScrapePeaks(Peaks *[]Mountains) {
-
+	*Peaks = []Mountains{}
 	browser := rod.New().NoDefaultDevice().MustConnect()
 	defer browser.MustClose()
 	page := browser.MustPage("https://nepalhimalpeakprofile.org/peak-profile")
@@ -40,15 +40,10 @@ func ScrapePeaks(Peaks *[]Mountains) {
 		*Peaks = append(*Peaks, peak)
 	}
 
-	// Update the name of the first peak
 	if len(*Peaks) > 0 {
 		(*Peaks)[0].Name = "Mount Everest"
 	}
 
-	// Print the peak details
-	for _, peak := range *Peaks {
-		fmt.Printf("%+v\n", peak)
-	}
 }
 
 func parseHeight(heightStr string) float32 {

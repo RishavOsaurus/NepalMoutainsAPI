@@ -1,20 +1,18 @@
 package main
 
-import (
-	"fmt"
-	"mountainsapi/scrapper"
-	"time"
-)
+import gogin "mountainsapi/go-gin"
 
 func main() {
-	var Peaks []scrapper.Mountains
-	for {
-		// Create a ticker that triggers every 30 seconds
-		timer1 := time.NewTicker(24 * time.Hour)
+	// var Peaks []scrapper.Mountains
+	// for {
 
-		scrapper.ScrapePeaks(&Peaks)
-		scrapper.WriteToJson(Peaks)
-		fmt.Println("Ok NEXT ITERATION")
-		<-timer1.C
-	}
+	// 	timer1 := time.NewTicker(20 * time.Second)
+
+	// 	scrapper.ScrapePeaks(&Peaks)
+	// 	scrapper.WriteToJson(Peaks)
+
+	// 	<-timer1.C
+	// }
+
+	gogin.GinAPI()
 }
