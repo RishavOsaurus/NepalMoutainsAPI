@@ -118,7 +118,7 @@ func GinAPI() {
 	go r.Run("localhost:8080")
 
 	for {
-		time.Sleep(20 * time.Second)
+		time.Sleep(20 * time.Hour)
 		scrapeAndUpdatePeaks()
 	}
 }
