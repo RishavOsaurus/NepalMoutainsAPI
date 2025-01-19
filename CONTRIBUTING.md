@@ -4,7 +4,7 @@ Thank you for considering contributing to the Nepal Peaks API! We appreciate you
 
 ## How to Contribute to this repo
 
-1. **Fork the Repository**
+1. **Fork th  Repository**
 2. 
    - Go to the [Nepal Peaks API GitHub page](https://github.com/RishavOsaurus/NepalMoutainsAPI.git).
    - Click on the **Fork** button in the top right corner to create a copy of the repository under your GitHub account.
