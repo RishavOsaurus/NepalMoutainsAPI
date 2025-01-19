@@ -2,7 +2,7 @@
 
 Thank you for considering contributing to the Nepal Peaks API! We appreciate your help in improving the project. Please follow the guidelines below for a smooth contribution process.
 
-## How to Contribute
+## How to Contribute to this repo
 
 1. **Fork the Repository**
 2. 
