@@ -81,25 +81,68 @@ func GinAPI() {
 
 	r.GET("/api/v1/search", func(c *gin.Context) {
 		idParam := c.Query("id")
-		if idParam == "" {
+		heightGtParam := c.Query("height_gt")
+		heightLtParam := c.Query("height_lt")
+		heightStParam := c.Query("height_st")
+
+		var peakID int
+		var err error
+		if idParam != "" {
+			peakID, err = strconv.Atoi(idParam)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id parameter"})
+				return
+			}
+		}
+
+		var heightGt, heightLt, heightSt float32
+		if heightGtParam != "" {
+			height64, err := strconv.ParseFloat(heightGtParam, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid height_gt parameter"})
+				return
+			}
+			heightGt = float32(height64)
+		}
+		if heightLtParam != "" {
+			height64, err := strconv.ParseFloat(heightLtParam, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid height_lt parameter"})
+				return
+			}
+			heightLt = float32(height64)
+		}
+		if heightStParam != "" {
+			height64, err := strconv.ParseFloat(heightStParam, 64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid height_st parameter"})
+				return
+			}
+			heightSt = float32(height64)
+		}
+
+		if (idParam == "" && heightGtParam == "" && heightLtParam == "" && heightStParam == "") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "id query parameter is required"})
 			return
 		}
 
-		peakID, err := strconv.Atoi(idParam)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id parameter"})
-			return
-		}
-
-		var foundPeak scrapper.Mountains
+		var foundPeak []scrapper.Mountains
 		var peakFound bool
 		for _, peak := range Peaks {
-			if peak.Peak_id == peakID {
-				foundPeak = peak
-				peakFound = true
-				break
+			if (idParam != "" && peak.Peak_id != peakID) {
+				continue
 			}
+			if (heightGtParam != "" && peak.Height <= heightGt) {
+				continue
+			}
+			if (heightLtParam != "" && peak.Height >= heightLt) {
+				continue
+			}
+			if (heightStParam != "" && peak.Height != heightSt) {
+				continue
+			}
+			foundPeak = append(foundPeak, peak)
+			peakFound = true
 		}
 
 		if !peakFound {
