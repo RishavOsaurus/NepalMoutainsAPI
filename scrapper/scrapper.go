@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/go-rod/rod"
 )
@@ -18,7 +19,7 @@ type Mountains struct {
 }
 
 func ScrapePeaks(Peaks *[]Mountains) {
-	fmt.Println("Yo matrai")
+	fmt.Println("Starting Scraping")
 	*Peaks = []Mountains{}
 	browser := rod.New().NoDefaultDevice().MustConnect()
 	defer browser.MustClose()
@@ -28,23 +29,38 @@ func ScrapePeaks(Peaks *[]Mountains) {
 
 	rows := page.MustElements("table#mountaintable tbody tr")
 
-	for _, row := range rows {
-		var peak Mountains
+	results := make(chan Mountains, len(rows))
+	var wg sync.WaitGroup
 
-		peak.Peak_id = len(*Peaks) + 1
-		peak.Alias = row.MustElement("td:nth-of-type(1)").MustText()
-		peak.Name = row.MustElement("td:nth-of-type(2)").MustText()
-		peak.Height = parseHeight(row.MustElement("td:nth-of-type(3)").MustText())
-		peak.Peak_range = row.MustElement("td:nth-of-type(4)").MustText()
-		peak.OpenToPublic = parseOpenToPublic(row.MustElement("td:nth-of-type(5)").MustText())
+	// Goroutines process
+	for i, row := range rows {
+		wg.Add(1)
+		go func(i int, row *rod.Element) {
+			defer wg.Done()
+			var peak Mountains
+			peak.Peak_id = i + 1
+			peak.Alias = row.MustElement("td:nth-of-type(1)").MustText()
+			peak.Name = row.MustElement("td:nth-of-type(2)").MustText()
+			peak.Height = parseHeight(row.MustElement("td:nth-of-type(3)").MustText())
+			peak.Peak_range = row.MustElement("td:nth-of-type(4)").MustText()
+			peak.OpenToPublic = parseOpenToPublic(row.MustElement("td:nth-of-type(5)").MustText())
 
+			results <- peak
+		}(i, row)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for peak := range results {
 		*Peaks = append(*Peaks, peak)
 	}
 
 	if len(*Peaks) > 0 {
 		(*Peaks)[0].Name = "Mount Everest"
 	}
-
 }
 
 func parseHeight(heightStr string) float32 {
@@ -61,13 +77,15 @@ func parseOpenToPublic(openStr string) bool {
 }
 
 func WriteToJson(Peaks []Mountains) {
-	jsonData, err := json.MarshalIndent(Peaks, "", "")
+	jsonData, err := json.MarshalIndent(Peaks, "", "  ")
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	file, err := os.Create("peaks.json")
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	defer file.Close()
 
@@ -75,5 +93,4 @@ func WriteToJson(Peaks []Mountains) {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 }

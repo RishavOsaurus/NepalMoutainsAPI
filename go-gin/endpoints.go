@@ -28,10 +28,15 @@ func loadPeaksFromFile() {
 }
 
 func scrapeAndUpdatePeaks() {
-	scrapper.ScrapePeaks(&Peaks)
-	scrapper.WriteToJson(Peaks)
-	loadPeaksFromFile()
-	fmt.Println("Data updated")
+	// Goroutine to scraping periodically
+	go func() {
+		for {
+			fmt.Println("Scraping and updating data...")
+			scrapper.ScrapePeaks(&Peaks)
+			scrapper.WriteToJson(Peaks)
+			time.Sleep(20 * time.Hour)
+		}
+	}()
 }
 
 func GinAPI() {
@@ -117,8 +122,4 @@ func GinAPI() {
 
 	go r.Run("localhost:8080")
 
-	for {
-		time.Sleep(20 * time.Hour)
-		scrapeAndUpdatePeaks()
-	}
 }
